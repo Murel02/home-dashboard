@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Kivy (myapp)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "myapp.app",
+      "envFile": "${workspaceFolder}/.env",
+      "justMyCode": true
+    }
+  ]
+}

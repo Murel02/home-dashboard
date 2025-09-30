@@ -1,0 +1,259 @@
+#:kivy 2.3.0
+
+<MainScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+
+        # Top bar
+        MDBoxLayout:
+            id: topbar
+            size_hint_y: None
+            height: dp(44)
+            padding: dp(6), 0, dp(6), 0
+            spacing: dp(6)
+            md_bg_color: app.theme_cls.primary_color
+
+            MDIconButton:
+                icon: "refresh"
+                icon_size: dp(20)
+                on_release: root.fetch_rooms_async()
+
+            MDLabel:
+                text: "Hue Control"
+                halign: "left"
+                valign: "middle"
+                bold: True
+                shorten: True
+
+            Widget:
+
+            MDLabel:
+                text: root.current_time
+                size_hint_x: None
+                width: dp(80)
+                halign: "right"
+                valign: "middle"
+                font_size: sp(12)
+
+            MDIconButton:
+                icon: "cog"
+                icon_size: dp(20)
+                on_release: root.manager.current = "settings"
+
+        # status line
+        MDLabel:
+            id: status_lbl
+            text: ""
+            theme_text_color: "Secondary"
+            halign: "center"
+            size_hint_y: None
+            height: dp(20)
+
+        # ROOMS
+        MDBoxLayout:
+            orientation: "vertical"
+            spacing: dp(8)
+            padding: dp(8)
+
+            MDCard:
+                orientation: "vertical"
+                radius: dp(16)
+                padding: dp(8)
+                md_bg_color: app.theme_color
+
+                MDBoxLayout:
+                    size_hint_y: None
+                    height: dp(28)
+                    MDLabel:
+                        text: "Rooms"
+                        bold: True
+                        halign: "left"
+
+                GridLayout:
+                    id: rooms_grid
+                    cols: 3
+                    spacing: dp(6)
+                    padding: 0
+                    row_default_height: dp(135)  # compact
+                    col_default_width: dp(220)
+                    size_hint_y: 1
+
+                MDBoxLayout:
+                    size_hint_y: None
+                    height: dp(32)
+                    spacing: dp(4)
+                    MDIconButton:
+                        icon: "chevron-left"
+                        icon_size: dp(18)
+                        on_release: root.page_rooms(-1)
+                    MDLabel:
+                        text: root.rooms_page_text
+                        halign: "center"
+                    MDIconButton:
+                        icon: "chevron-right"
+                        icon_size: dp(18)
+                        on_release: root.page_rooms(1)
+
+
+<RoomLightsScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+
+        MDTopAppBar:
+            title: root.room_name if root.room_name else "Lights"
+            elevation: 2
+            left_action_items: [["arrow-left", lambda x: root.go_back()]]
+            right_action_items: [["refresh", lambda x: root.fetch_lights_async()]]
+
+        MDLabel:
+            id: status_lbl
+            text: ""
+            theme_text_color: "Secondary"
+            halign: "center"
+            size_hint_y: None
+            height: dp(20)
+
+        MDBoxLayout:
+            orientation: "vertical"
+            spacing: dp(8)
+            padding: dp(8)
+
+            GridLayout:
+                id: lights_grid
+                cols: 3
+                spacing: dp(6)
+                padding: 0
+                row_default_height: dp(120)
+                col_default_width: dp(120)
+                size_hint_y: 1
+
+
+<SettingsScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+        padding: dp(16)
+        spacing: dp(12)
+
+        MDTopAppBar:
+            title: "Settings"
+            elevation: 2
+            left_action_items: [["arrow-left", lambda x: root.go_back()]]
+
+        MDTextField:
+            hint_text: "Hue Bridge IP"
+            text: root.bridge_ip
+            on_text: root.bridge_ip = self.text
+
+        MDTextField:
+            hint_text: "Hue Username"
+            text: root.username
+            on_text: root.username = self.text
+
+        MDLabel:
+            id: status_lbl
+            text: ""
+            theme_text_color: "Secondary"
+            halign: "center"
+            size_hint_y: None
+            height: dp(20)
+
+        MDBoxLayout:
+            size_hint_y: None
+            height: dp(48)
+            spacing: dp(8)
+            MDRaisedButton:
+                text: "Save"
+                on_release: root.save()
+            MDFlatButton:
+                text: "Cancel"
+                on_release: root.manager.current = "main"
+            MDRaisedButton:
+                id: btn_discover
+                text: "Discover"
+                on_release: root.discover()
+
+
+# ---------- Tiles ----------
+<HueTile>:
+    size_hint: None, None
+    TappableCard:
+        on_release: root.on_card_tap()
+
+        # Visual card that fills the tappable area
+        MDCard:
+            size: root.size
+            pos: root.pos
+            orientation: "vertical"
+            padding: dp(8)
+            radius: dp(14)
+            md_bg_color: app.on_color if root.is_on else app.off_color
+
+            MDBoxLayout:
+                orientation: "vertical"
+                spacing: dp(6)
+
+                # Header: name + small chevron (only when root.show_open)
+                MDBoxLayout:
+                    size_hint_y: None
+                    height: dp(24)
+                    spacing: dp(6)
+                    MDLabel:
+                        text: root.item_name
+                        font_size: sp(13)
+                        bold: True
+                        shorten: True
+                        halign: "left"
+                    MDIconButton:
+                        icon: "chevron-right"
+                        icon_size: dp(18)
+                        opacity: 1 if root.show_open else 0
+                        disabled: not root.show_open
+                        on_release: root.open_details() if root.show_open else None
+
+                # Small controls
+                MDBoxLayout:
+                    size_hint_y: None
+                    height: dp(24)
+                    spacing: dp(4)
+                    MDIconButton:
+                        icon: "power"
+                        icon_size: dp(18)
+                        on_release: root.toggle()
+                    MDIconButton:
+                        icon: "palette"
+                        icon_size: dp(18)
+                        disabled: not root.supports_color
+                        on_release: root.open_color_picker()
+                    MDLabel:
+                        text: "ON" if root.is_on else "OFF"
+                        halign: "right"
+                        font_size: sp(11)
+
+                MDBoxLayout:
+                    size_hint_y: None
+                    height: dp(22)
+                    spacing: dp(6)
+                    MDLabel:
+                        text: "Bri"
+                        size_hint_x: None
+                        width: dp(28)
+                        theme_text_color: "Secondary"
+                        font_size: sp(11)
+                    MDSlider:
+                        min: 0
+                        max: 100
+                        value: root.brightness
+                        step: 1
+                        on_value: root.on_slider_change(self.value)
+                        on_touch_up: root.on_slider_release(*args)
+                    MDLabel:
+                        text: str(int(root.brightness)) + "%"
+                        size_hint_x: None
+                        width: dp(42)
+                        halign: "right"
+                        theme_text_color: "Secondary"
+                        font_size: sp(11)
+
+
+<LightTile>:
+<RoomTile>:
