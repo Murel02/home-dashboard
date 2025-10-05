@@ -1,3 +1,4 @@
+from __future__ import annotations
 from pathlib import Path
 import threading
 import time
@@ -17,16 +18,15 @@ from kivymd.app import MDApp
 from kivymd.uix.screen import MDScreen
 
 from .hue import (
-    list_lights_detailed_for_room,  # <-- use room-aware lights fetch
+    list_lights_detailed_for_room,
     list_rooms_detailed,
     load_config,
     save_config,
     discover_bridges,
 )
 
-# Fullscreen for the 7" display
+# Fullscreen for the 7"
 Window.fullscreen = "auto"
-
 
 # ---------------------------
 #        MAIN (ROOMS)
@@ -57,16 +57,14 @@ class MainScreen(MDScreen):
         self.current_time = time.strftime("%H:%M:%S")
 
     def _tune_for_small_screen(self):
-        """Bigger room tiles on 800x480 by using fewer columns."""
+        """Bigger tiles on 800x480 by reducing columns; compact height to remove top gap."""
         W, H = Window.size
         cols = 3 if W >= 760 else 2
-
         g = self.ids.get("rooms_grid")
         if g:
-            per_grid_w = W - dp(8 * 2)  # container padding
+            per_grid_w = W - dp(8 * 2)
             tile_w = (per_grid_w - dp(6) * (cols - 1)) / cols
-            # compact height to avoid a big top gap
-            tile_h = max(dp(120), min(dp(135), tile_w * 0.7))
+            tile_h = max(dp(120), min(dp(135), tile_w * 0.72))
             g.cols = cols
             g.col_default_width = tile_w
             g.row_default_height = tile_h
@@ -82,7 +80,7 @@ class MainScreen(MDScreen):
 
         def work():
             try:
-                details = list_rooms_detailed()  # {id: {...}}
+                details = list_rooms_detailed()
                 items = []
                 for rid, d in details.items():
                     items.append(
@@ -105,8 +103,9 @@ class MainScreen(MDScreen):
 
                 Clock.schedule_once(lambda *_: assign())
             except Exception as e:
-                msg = f"Rooms error: {e}"
-                Clock.schedule_once(lambda *_: self.show_message(msg, 3))
+                Clock.schedule_once(
+                    lambda *_: self.show_message(f"Rooms error: {e}", 3)
+                )
             finally:
                 Clock.schedule_once(lambda *_: setattr(self, "loading_rooms", False))
 
@@ -217,9 +216,10 @@ class RoomLightsScreen(MDScreen):
 
                 Clock.schedule_once(lambda *_: assign())
             except Exception as e:
-                msg = f"Lights error: {e}"
                 Clock.schedule_once(
-                    lambda *_: setattr(self.ids.status_lbl, "text", msg)
+                    lambda *_: setattr(
+                        self.ids.status_lbl, "text", f"Lights error: {e}"
+                    )
                 )
             finally:
                 Clock.schedule_once(lambda *_: setattr(self, "loading", False))
@@ -257,8 +257,6 @@ class SettingsScreen(MDScreen):
         def work():
             try:
                 ips = discover_bridges(skip_cloud=True)
-                if not ips:
-                    ips = discover_bridges(skip_cloud=True)
 
                 def assign():
                     if not ips:
@@ -269,8 +267,9 @@ class SettingsScreen(MDScreen):
 
                 Clock.schedule_once(lambda *_: assign())
             except Exception as e:
-                msg = f"Discover error: {e}"
-                Clock.schedule_once(lambda *_: setattr(lbl, "text", msg))
+                Clock.schedule_once(
+                    lambda *_: setattr(lbl, "text", f"Discover error: {e}")
+                )
             finally:
                 if btn:
                     Clock.schedule_once(lambda *_: setattr(btn, "disabled", False))
@@ -311,8 +310,9 @@ class SettingsScreen(MDScreen):
                 Clock.schedule_once(self.go_back, 1.0)
             except Exception as e:
                 if lbl:
-                    msg = f"Save error: {e}"
-                    Clock.schedule_once(lambda *_: setattr(lbl, "text", msg))
+                    Clock.schedule_once(
+                        lambda *_: setattr(lbl, "text", f"Save error: {e}")
+                    )
 
         threading.Thread(target=work, daemon=True).start()
 
@@ -334,7 +334,6 @@ class HueApp(MDApp):
                 main.show_message(text, duration)
 
     def open_room(self, room_id: int, room_name: str):
-        """Called from RoomTile chevron."""
         if not self.root:
             return
         rl = self.root.get_screen("room_lights")
@@ -344,9 +343,8 @@ class HueApp(MDApp):
 
     def build(self):
         self.theme_cls.theme_style = "Dark"
-        self.theme_cls.primary_palette = "Teal"
-        self.theme_cls.primary_hue = "500"
-
+        self.theme_cls.primaryPalette = "Teal"
+        self.theme_cls.primaryHue = "500"
         Window.clearcolor = self.theme_color
 
         kv_path = Path(__file__).with_name("myapp.kv")

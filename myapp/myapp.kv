@@ -5,40 +5,13 @@
         orientation: "vertical"
 
         # Top bar
-        MDBoxLayout:
-            id: topbar
-            size_hint_y: None
-            height: dp(44)
-            padding: dp(6), 0, dp(6), 0
-            spacing: dp(6)
-            md_bg_color: app.theme_cls.primary_color
+       # Top bar (replace the whole MDBoxLayout block)
+        MDTopAppBar:
+            title: "Hue Control"
+            elevation: 2
+            left_action_items: [["refresh", lambda x: root.fetch_rooms_async()]]
+            right_action_items: [["cog", lambda x: root.manager.current.__setattr__("current", "settings")]]
 
-            MDIconButton:
-                icon: "refresh"
-                icon_size: dp(20)
-                on_release: root.fetch_rooms_async()
-
-            MDLabel:
-                text: "Hue Control"
-                halign: "left"
-                valign: "middle"
-                bold: True
-                shorten: True
-
-            Widget:
-
-            MDLabel:
-                text: root.current_time
-                size_hint_x: None
-                width: dp(80)
-                halign: "right"
-                valign: "middle"
-                font_size: sp(12)
-
-            MDIconButton:
-                icon: "cog"
-                icon_size: dp(20)
-                on_release: root.manager.current = "settings"
 
         # status line
         MDLabel:
@@ -59,11 +32,12 @@
                 orientation: "vertical"
                 radius: dp(16)
                 padding: dp(8)
+                elevation: 2                   # <<< add
                 md_bg_color: app.theme_color
 
                 MDBoxLayout:
                     size_hint_y: None
-                    height: dp(28)
+                    height: dp(32)
                     MDLabel:
                         text: "Rooms"
                         bold: True
@@ -74,7 +48,7 @@
                     cols: 3
                     spacing: dp(6)
                     padding: 0
-                    row_default_height: dp(135)  # compact
+                    row_default_height: dp(135)
                     col_default_width: dp(220)
                     size_hint_y: 1
 
@@ -161,15 +135,27 @@
             size_hint_y: None
             height: dp(48)
             spacing: dp(8)
-            MDRaisedButton:
+
+            MDButton:
                 text: "Save"
+                style: "elevated"      # primary
+                size_hint_x: None
+                width: dp(110)
                 on_release: root.save()
-            MDFlatButton:
+
+            MDButton:
                 text: "Cancel"
+                style: "text"          # secondary
+                size_hint_x: None
+                width: dp(110)
                 on_release: root.manager.current = "main"
-            MDRaisedButton:
+
+            MDButton:
                 id: btn_discover
                 text: "Discover"
+                style: "elevated"
+                size_hint_x: None
+                width: dp(120)
                 on_release: root.discover()
 
 
@@ -179,20 +165,22 @@
     TappableCard:
         on_release: root.on_card_tap()
 
-        # Visual card that fills the tappable area
+        # Visual card inside the tappable wrapper
         MDCard:
             size: root.size
             pos: root.pos
             orientation: "vertical"
             padding: dp(8)
             radius: dp(14)
+            elevation: 2
             md_bg_color: app.on_color if root.is_on else app.off_color
+            ripple_behavior: True
 
             MDBoxLayout:
                 orientation: "vertical"
                 spacing: dp(6)
 
-                # Header: name + small chevron (only when root.show_open)
+                # Header: name + small chevron (only when root.show_open == True)
                 MDBoxLayout:
                     size_hint_y: None
                     height: dp(24)
@@ -229,6 +217,7 @@
                         halign: "right"
                         font_size: sp(11)
 
+                # Brightness row
                 MDBoxLayout:
                     size_hint_y: None
                     height: dp(22)

@@ -1,26 +1,29 @@
+from __future__ import annotations
 from kivy.properties import BooleanProperty, NumericProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.app import App
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.floatlayout import FloatLayout
-from kivymd.uix.card import MDCard
-
 
 from .hue import (
+    light_is_on,
+    room_is_on,
     set_on,
     set_brightness,
-    set_color_hs,  # light-level actions
+    set_color_hs,
     set_room_on,
     set_room_brightness,
-    set_room_color_hs,  # room-level actions
+    set_room_color_hs,
 )
 
 
 class TappableCard(ButtonBehavior, FloatLayout):
-    """A container that is tappable; it wraps a visual MDCard inside."""
+    """
+    A transparent, tappable wrapper that contains a visual MDCard inside (in KV).
+    We let children handle touches first so button/slider taps don't also fire the card.
+    """
 
     def on_touch_down(self, touch):
-        # Let children (buttons, sliders, etc.) handle it first
         if FloatLayout.on_touch_down(self, touch):
             return True
         return ButtonBehavior.on_touch_down(self, touch)
@@ -35,46 +38,29 @@ class HueTile(BoxLayout):
     item_id = NumericProperty(0)
     item_name = StringProperty("")
     is_on = BooleanProperty(False)
-    brightness = NumericProperty(0)  # 0..100 in UI
+    brightness = NumericProperty(0)  # 0..100
     supports_color = BooleanProperty(False)
     show_open = BooleanProperty(False)  # only True for RoomTile
     tap_toggles = BooleanProperty(False)
     _busy = BooleanProperty(False)
 
-    def on_card_tap(self):
-        """Called when the card itself is tapped (via KV)."""
-        if self.tap_toggles:
-            self.toggle()
-
-    def on_parent(self, *args):
-        p = self.parent
-        if p and hasattr(p, "col_default_width") and hasattr(p, "row_default_height"):
-            p.bind(
-                col_default_width=lambda *_: self._recalc_size(),
-                row_default_height=lambda *_: self._recalc_size(),
-            )
-            self._recalc_size()
-
-    def _recalc_size(self):
-        p = self.parent
-        if p and hasattr(p, "col_default_width") and hasattr(p, "row_default_height"):
-            self.size_hint = (None, None)
-            self.size = (p.col_default_width, p.row_default_height)
-
-    def _notify(self, text):
+    def _notify(self, text: str):
         app = App.get_running_app()
         if app and hasattr(app, "show_message"):
             app.show_message(text, 2)
 
-    # Default actions = per-light (used by LightTile)
+    def on_card_tap(self):
+        if self.tap_toggles:
+            self.toggle()
+
+    # ---- Default = per-light behavior (LightTile) ----
+
     def toggle(self):
         if self._busy:
             return
         self._busy = True
         try:
-            from .hue import light_is_on
-
-            current_on = light_is_on(self.item_id)  # <-- real state
+            current_on = light_is_on(self.item_id)  # ask the bridge
             new_state = not current_on
             set_on(self.item_id, new_state)
             self.is_on = new_state
@@ -113,7 +99,7 @@ class HueTile(BoxLayout):
                 h, s, v = rgb_to_hsv(*color[:3])
                 set_color_hs(self.item_id, h * 360.0, s * 100.0)
 
-            cp.bind(color=on_color)
+            cp.bind(color=on_color)  # will send many updates while dragging (expected)
             Popup(
                 title=f"Color: {self.item_name}", content=cp, size_hint=(0.9, 0.9)
             ).open()
@@ -140,21 +126,11 @@ class RoomTile(HueTile):
             return
         self._busy = True
         try:
-            from .hue import room_is_on
-
-            current_on = room_is_on(self.item_id)  # <-- actual any_on/all_on
+            current_on = room_is_on(self.item_id)  # reliable: state.any_on
             new_state = not current_on
             set_room_on(self.item_id, new_state)
             self.is_on = new_state
             self._notify(f"{self.item_name}: {'ON' if new_state else 'OFF'}")
-
-            # optional: refresh room list to sync sliders/labels
-            from kivy.clock import Clock
-
-            app = App.get_running_app()
-            if app and app.root:
-                main = app.root.get_screen("main")
-                Clock.schedule_once(lambda *_: main.fetch_rooms_async(), 0.3)
         except Exception as e:
             self._notify(f"Toggle error: {e}")
         finally:
@@ -179,7 +155,6 @@ class RoomTile(HueTile):
             from kivy.uix.popup import Popup
             from kivy.uix.colorpicker import ColorPicker
             from kivy.utils import rgb_to_hsv
-            from .hue import set_room_color_hs
 
             cp = ColorPicker()
 
