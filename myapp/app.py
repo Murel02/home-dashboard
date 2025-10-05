@@ -159,6 +159,63 @@ class MainScreen(MDScreen):
 # ---------------------------
 
 
+def on_kv_post(self, base_widget):
+    super().on_kv_post(base_widget)
+    from kivy.core.window import Window
+    Window.bind(size=self._layout_grids)
+    # Run once after KV is ready
+    self._layout_grids()
+
+def _layout_grids(self, *args):
+    from kivy.core.window import Window
+    from kivy.metrics import dp
+    W, H = Window.size
+
+    # Rooms grid
+    g = self.ids.get("rooms_grid")
+    if g:
+        cols = 2 if W < 900 else 3
+        g.cols = cols
+        grid_side_padding = dp(8) * 2
+        spacing = dp(6)
+        per_grid_w = max(0, W - grid_side_padding)
+        tile_w = (per_grid_w - spacing * (cols - 1)) / float(cols) if cols else per_grid_w
+        tile_h = max(dp(120), min(dp(135), tile_w * 0.72))
+        g.col_default_width = tile_w
+        g.row_default_height = tile_h
+
+        header_footer = dp(170)
+        usable_h = max(0, H - header_footer)
+        rows_visible = max(1, int((usable_h + spacing) // (tile_h + spacing)))
+        self._update_rooms_page_size(cols * rows_visible)
+
+        # Redraw if rooms already exist
+        try:
+            self.update_rooms_view()
+        except Exception:
+            pass
+
+    # Lights grid (optional)
+    gl = self.ids.get("lights_grid")
+    if gl:
+        cols_l = 3 if W >= 900 else 2
+        gl.cols = cols_l
+        per_w = max(0, W - dp(8) * 2)
+        spacing = dp(6)
+        tile_w_l = (per_w - spacing * (cols_l - 1)) / float(cols_l) if cols_l else per_w
+        tile_h_l = max(dp(100), min(dp(120), tile_w_l * 0.8))
+        gl.col_default_width = tile_w_l
+        gl.row_default_height = tile_h_l
+
+def _update_rooms_page_size(self, new_size: int):
+    try:
+        new_size = int(max(1, new_size))
+        if getattr(self, "PAGE_SIZE", None) != new_size:
+            self.PAGE_SIZE = new_size
+            self.rooms_page = 0
+    except Exception:
+        self.PAGE_SIZE = 6
+
 class RoomLightsScreen(MDScreen):
     room_id = NumericProperty(-1)
     room_name = StringProperty("")
